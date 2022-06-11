@@ -1,0 +1,5 @@
+arduino-libraries/NTPClient@^3.1.0
+plerup/EspSoftwareSerial@^6.15.2
+fastled/FastLED@^3.5.0
+fbiego/ESP32Time@^1.0.4
+links2004/WebSockets@^2.3.6
