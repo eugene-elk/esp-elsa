@@ -11,6 +11,9 @@ const uint8_t notesCount = 12;
 class Finger 
 {
   public:
+
+    Finger() {}
+
     char hand; // l - левая, r - правая
     char type; // s - simple, d - double, b - big
 
@@ -38,7 +41,13 @@ class Finger
 
     void print_info() {
       Serial.println("Finger");
-      Serial.printf("Hand: %s, Type: %s \n", hand, type);
+      
+      Serial.println(this->hand);
+      Serial.println(this->type);
+
+      
+      Serial.printf("Hand: %c, Type: %c \n", hand, type);
+
       if (type == 'c') {
         Serial.printf("Pin: %u", servo1);
         Serial.printf("Parameters: %u, %u \n", open, close);
@@ -57,11 +66,11 @@ class Finger
 class Note
 {
   public:
-    String name;
+    uint8_t note_number;
     uint8_t positions[fingersCount];
-
+    Note() {}
     void print_info() {
-      Serial.printf("Note %s \n", name);
+      Serial.printf("Note %u \n", note_number);
       for(int i = 0; i < fingersCount; i++) {
         Serial.printf("%u ", positions[i]);
       }
@@ -75,6 +84,17 @@ class WebsocketWorker
     char temp;
     uint8_t index = 0;
   public:
+
+    int8_t resolveNote (char* letter) {
+      const char notes[][4] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+      for (uint8_t i = 0; i < sizeof(notes); i++) {
+        if (!strcmp(notes[i], letter)) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
     char schedule[256][64];
     uint8_t scheduleCursor = 0;
     uint8_t scheduleOffset = 0;
@@ -90,6 +110,10 @@ class WebsocketWorker
       for (uint8_t i = 0; i < vSize; i++)
         for (uint8_t j = 0; j < hSize; j++)
           command[i][j] = '\0';
+      // for (uint8_t i = 0; i < fingersCount; i++) 
+      //   fingers_settings[i] = Finger();
+      // for (uint8_t i = 0; i < notesCount; i++) 
+      //   notes[i] = Note();
     }
 
     Finger fingers_settings[fingersCount];
@@ -121,7 +145,12 @@ class WebsocketWorker
       }
 
       argument_number -= 2;
+      Serial.print("command[0]: ");
       Serial.println(command[0]);
+      Serial.print("command[1]: ");
+      Serial.println(command[1]);
+      Serial.print("command[2]: ");
+      Serial.println(command[2]);
 
       if (commandEquals("/reset_timer")) {
         scheduleTimer = millis();
@@ -138,11 +167,12 @@ class WebsocketWorker
       if (commandEquals("/setup_finger")) {
         Serial.println("Setup finger");
         
-        uint8_t finger_number = atoi(command[1]);
-        fingers_settings[finger_number].hand = command[2][0];
+        uint8_t finger_number = atoi(command[1]); // 0
+        fingers_settings[finger_number].hand = command[2][0]; // l
 
         // simple finger
-        if (command[3][0] == 's') { 
+        if (command[3][0] == 's') {
+          
           fingers_settings[finger_number].type = 's';
           fingers_settings[finger_number].servo1 = atoi(command[4]);
           fingers_settings[finger_number].open = atoi(command[5]);
@@ -150,6 +180,7 @@ class WebsocketWorker
         }
         // double finger
         else if (command[3][0] == 'd') {
+
           fingers_settings[finger_number].type = 'd';
           fingers_settings[finger_number].servo1 = atoi(command[4]);
           fingers_settings[finger_number].servo2 = atoi(command[5]);
@@ -162,6 +193,7 @@ class WebsocketWorker
         }
         // big finger
         else if (command[3][0] == 'b') {
+
           fingers_settings[finger_number].type = 'b';
           fingers_settings[finger_number].servo1 = atoi(command[4]);
           fingers_settings[finger_number].servo2 = atoi(command[5]);
@@ -190,16 +222,19 @@ class WebsocketWorker
       if (commandEquals("/setup_note")) {
         Serial.println("Setup note");
 
-        uint8_t note_number = atoi(command[1]);
-        notes[note_number].name = atoi(command[2]);
+        int8_t note_number = resolveNote(command[1]);
 
         for (int i = 0; i < 8; i++) {
-          notes[note_number].positions[i] = atoi(command[i+3]);
+          notes[note_number].positions[i] = atoi(command[i+2]);
         }
       }
 
       if (commandEquals("/show_info")) {
         for (int i = 0; i < fingersCount; i++) {
+          Serial.println("testing finger");
+          Serial.println(i);
+          Serial.println(fingers_settings[i].type);
+          
           fingers_settings[i].print_info();
         }
         for (int i = 0; i < notesCount; i++) {
@@ -242,8 +277,6 @@ class WebsocketWorker
         if (turn) pinMode(33, HIGH);
         else pinMode(33, LOW);
       }
-
-
     }
 
     void scheduler() {
