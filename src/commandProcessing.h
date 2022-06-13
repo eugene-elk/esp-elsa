@@ -205,20 +205,6 @@ class WebsocketWorker
         }
       }
 
-      if (commandEquals("/prepare_fingers")) {
-        for (int i = 0; i < fingersCount; i++) {
-          if (fingers_settings[i].type == 's') {
-            Serial.println("prepare simple");
-          }
-          if (fingers_settings[i].type == 'd') {
-            Serial.println("prepare double");
-          }
-          if (fingers_settings[i].type == 'b') {
-            Serial.println("prepare big");
-          }
-        }
-      }
-
       if (commandEquals("/setup_note")) {
         Serial.println("Setup note");
 
@@ -242,25 +228,42 @@ class WebsocketWorker
         }
       }
 
-      if (commandEquals("/play_note")) {
-
-        Serial.println("Play note");
-
-        uint16_t time = atoi(command[1]);
-        String note_name = String(command[2]);
+      
+      if (commandEquals("/prepare_fingers")) {
         
-        for (int i = 0; i < notesCount; i++) {
-          if (note_name == notes[i].name) {
+        // TODO выставляем все пальцы в нужные позиции
 
-            // здесь выставляем пальцы и играем ноту
-            break;
+        for (int i = 0; i < fingersCount; i++) {
+          if (fingers_settings[i].type == 's') {
+            Serial.println("prepare simple");
+            fingers_current_positions[]
+          }
+          if (fingers_settings[i].type == 'd') {
+            Serial.println("prepare double");
+          }
+          if (fingers_settings[i].type == 'b') {
+            Serial.println("prepare big");
           }
         }
+      }
+
+      if (commandEquals("/play_note")) {
+        Serial.println("Play note");
+
+        uint16_t note_number = resolveNote(command[1]);
+        uint16_t time = atoi(command[2]);
+        
+        pinMode(33, HIGH); // открываем клапан
+        
+        // TODO взятие ноты
+
       }
 
       if (commandEquals("/delay")) { 
         Serial.println("Delay");
         uint16_t time = atoi(command[1]);
+
+        pinMode(25, LOW); // закрываем клапан
         vTaskDelay(time);
       }
 
