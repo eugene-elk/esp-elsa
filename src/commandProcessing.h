@@ -4,6 +4,9 @@
 const uint8_t vSize = 64;
 const uint8_t hSize = 64;
 
+const uint8_t fingersCount = 8;
+const uint8_t notesCount = 14;
+
 
 class Finger 
 {
@@ -32,14 +35,14 @@ class Finger
     uint8_t s2_open;
     uint8_t s1_close;
     uint8_t s1_half_close;
-}
+};
 
 class Note
 {
   public:
     String name;
     uint8_t positions[8];
-}
+};
 
 class WebsocketWorker
 {
@@ -65,7 +68,7 @@ class WebsocketWorker
     }
 
     Finger fingers_settings[8];
-    Note notes_settings[14];
+    Note notes[notesCount];
 
     void processCommand(char *buff) {
       uint8_t buff_index = 0;
@@ -158,39 +161,25 @@ class WebsocketWorker
         Serial.println("Setup note");
 
         uint8_t note_number = atoi(command[1]);
-        notes_settings[note_number].name = atoi(command[2]);
+        notes[note_number].name = atoi(command[2]);
 
         for (int i = 0; i < 8; i++) {
-          notes_settings[note_number].positions[i] = atoi(command[i+3]);
+          notes[note_number].positions[i] = atoi(command[i+3]);
         }
       }
 
       if (commandEquals("/play_note")) {
 
-        const uint16_t time = atoi(command[1]);
-        const int16_t speed = atoi(command[2]);
-        Serial.print(argument_number);
-        for(int i = 3; i <= argument_number; i+=2) {
-          if(command[i][0] == 'r')
-            moveServo('r', atoi(command[i + 1]), 160);
-          else if(command[i][0] == 'l') {
-            moveServo('l', atoi(command[i + 1]), 10);
-          }
-        }        
-        linear.setDriver(speed);
-        vTaskDelay(time);
-        for(int i = 3; i <= argument_number; i+=2) {
-          if(command[i][0] == 'r')
-            moveServo('r', atoi(command[i + 1]), 90);
-          else if(command[i][0] == 'l') {
-            moveServo('l', atoi(command[i + 1]), 90);
+        uint16_t time = atoi(command[1]);
+        String note_name = String(command[2]);
+        
+        for (int i = 0; i < notesCount; i++) {
+          if (note_name == notes[i].name) {
+            // здесь выставляем пальцы и играем ноту
+            break;
           }
         }
-        linear.setDriver(0);
-        // moveServo(command[1][0], atoi(command[1]), 90);
-        // vTaskDelay(atoi(command[3]));
-        // linear.setDriver(0);
-        // moveServo(command[1][0], atoi(command[1]), 0);
+
       }
     }
 
