@@ -168,16 +168,9 @@ void tasker () {
  }
 }
 
-uint32_t timer = 0; 
-uint8_t hue = 0;
+
 void loop() {
   webSocket.loop();
-  if(millis() - timer > 30) {
-
-	timer = millis();
-	hue += 3;
-
-  }
 }
 
 
