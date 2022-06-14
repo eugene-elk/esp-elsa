@@ -82,12 +82,9 @@ class Finger
     void print_info() {
       Serial.println("Finger");
       
-      Serial.println(hand);
-      Serial.println(type);
-      
       Serial.printf("Hand: %c, Type: %c \n", hand, type);
 
-      if (type == 'c') {
+      if (type == 's') {
         Serial.printf("Pin: %u", servo1);
         Serial.printf("Parameters: %u, %u \n", open, close);
       }
@@ -124,10 +121,11 @@ class WebsocketWorker
     uint8_t index = 0;
   public:
 
+    // НЕ РАБОТАЕТ, НАДО ФИКСИТЬ
     int8_t resolveNote (char* letter) {
       const char notes[][4] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
       for (uint8_t i = 0; i < sizeof(notes); i++) {
-        if (!strcmp(notes[i], letter)) {
+        if (strcmp(notes[i], letter)) {
           return i;
         }
       }
@@ -183,12 +181,12 @@ class WebsocketWorker
       }
 
       argument_number -= 2;
-      Serial.print("command[0]: ");
-      Serial.println(command[0]);
-      Serial.print("command[1]: ");
-      Serial.println(command[1]);
-      Serial.print("command[2]: ");
-      Serial.println(command[2]);
+      // Serial.print("command[0]: ");
+      // Serial.println(command[0]);
+      // Serial.print("command[1]: ");
+      // Serial.println(command[1]);
+      // Serial.print("command[2]: ");
+      // Serial.println(command[2]);
 
       if (commandEquals("/reset_timer")) {
         scheduleTimer = millis();
@@ -211,14 +209,14 @@ class WebsocketWorker
 
         // simple finger
         if (command[3][0] == 's') {
-          fingers_settings[finger_number].type = 's';
+          fingers_settings[finger_number].type = char('s');
           fingers_settings[finger_number].servo1 = atoi(command[4]);
           fingers_settings[finger_number].open = atoi(command[5]);
           fingers_settings[finger_number].close = atoi(command[6]);
         }
         // double finger
         else if (command[3][0] == 'd') {
-          fingers_settings[finger_number].type = 'd';
+          fingers_settings[finger_number].type = char('d');
           fingers_settings[finger_number].servo1 = atoi(command[4]);
           fingers_settings[finger_number].servo2 = atoi(command[5]);
           fingers_settings[finger_number].open_end = atoi(command[6]);
@@ -230,7 +228,7 @@ class WebsocketWorker
         }
         // big finger
         else if (command[3][0] == 'b') {
-          fingers_settings[finger_number].type = 'b';
+          fingers_settings[finger_number].type = char('b');
           fingers_settings[finger_number].servo1 = atoi(command[4]);
           fingers_settings[finger_number].servo2 = atoi(command[5]);
           fingers_settings[finger_number].s1_relax = atoi(command[6]);
@@ -251,13 +249,9 @@ class WebsocketWorker
         }
       }
 
-      // выводим в Serial информацию о сохранённых нотах
+      // выводим в Serial информацию о сохранённых пальцах и нотах
       if (commandEquals("/show_info")) {
         for (int i = 0; i < fingersCount; i++) {
-          Serial.println("testing finger");
-          Serial.println(i);
-          Serial.println(fingers_settings[i].type);
-          
           fingers_settings[i].print_info();
         }
         for (int i = 0; i < notesCount; i++) {
