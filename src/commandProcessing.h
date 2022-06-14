@@ -10,6 +10,9 @@ const uint8_t notesCount = 12;
 const uint8_t COMPRESSOR_PIN = 33;
 const uint8_t VALVE_PIN = 25;
 
+// задержка между движениями пальца в сложных перестановках пальца
+const uint8_t delayBetweenFingerMoves = 100;
+
 class Finger 
 {
   public:
@@ -318,12 +321,12 @@ class WebsocketWorker
               }
               else if (fingers_required_positions[i] == 1) {
                 fingers_settings[i].double_open();
-                vTaskDelay(100);
+                vTaskDelay(delayBetweenFingerMoves);
                 fingers_settings[i].double_close_one_hole();
               }
               else if (fingers_required_positions[i] == 2) {
                 fingers_settings[i].double_open();
-                vTaskDelay(100);
+                vTaskDelay(delayBetweenFingerMoves);
                 fingers_settings[i].double_close_two_holes();
               }
             }
@@ -331,17 +334,17 @@ class WebsocketWorker
             else if (fingers_settings[i].type == 'b') {
               if (fingers_required_positions[i] == 0) {
                 fingers_settings[i].big_relax();
-                vTaskDelay(100);
+                vTaskDelay(delayBetweenFingerMoves);
                 fingers_settings[i].big_open();
               }
               else if (fingers_required_positions[i] == 1) {
                 fingers_settings[i].big_relax();
-                vTaskDelay(100);
+                vTaskDelay(delayBetweenFingerMoves);
                 fingers_settings[i].big_full_close();
               }
               else if (fingers_required_positions[i] == 2) {
                 fingers_settings[i].big_relax();
-                vTaskDelay(100);
+                vTaskDelay(delayBetweenFingerMoves);
                 fingers_settings[i].big_half_close();
               }
             }
