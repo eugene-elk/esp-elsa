@@ -7,6 +7,8 @@ const uint8_t hSize = 64;
 const uint8_t fingersCount = 8;
 const uint8_t notesCount = 12;
 
+const uint8_t COMPRESSOR_PIN = 33;
+const uint8_t VALVE_PIN = 25;
 
 class Finger 
 {
@@ -17,27 +19,62 @@ class Finger
     char hand; // l - левая, r - правая
     char type; // s - simple, d - double, b - big
 
-    uint8_t servo1;
-    uint8_t servo2;
+    uint8_t servo1, servo2;
 
     // для simple
-    uint8_t open;
-    uint8_t close;
+    uint8_t open, close;
 
     // для double
-    uint8_t open_end;
-    uint8_t open_mid;
-    uint8_t one_hole_end;
-    uint8_t one_hole_mid;
-    uint8_t two_hole_end;
-    uint8_t two_hole_mid;
+    // s1 - end. s2 - mid
+    uint8_t open_end, open_mid;
+    uint8_t one_hole_end, one_hole_mid;
+    uint8_t two_hole_end, two_hole_mid;
 
     // для big
-    uint8_t s1_relax;
-    uint8_t s2_relax;
+    uint8_t s1_relax, s2_relax;
     uint8_t s2_open;
     uint8_t s1_close;
     uint8_t s1_half_close;
+
+    void simple_open() {
+      moveServo(hand, servo1, open);
+    }
+    
+    void simple_close() {
+      moveServo(hand, servo1, close);
+    }
+
+    void double_open() {
+      moveServo(hand, servo1, open_end);
+      moveServo(hand, servo2, open_mid);
+    }
+
+    void double_close_one_hole() {
+      moveServo(hand, servo1, one_hole_end);
+      moveServo(hand, servo2, one_hole_mid);
+    }
+
+    void double_close_two_holes() {
+      moveServo(hand, servo1, two_hole_end);
+      moveServo(hand, servo2, two_hole_mid);
+    }
+
+    void big_relax() {
+      moveServo(hand, servo1, s1_relax);
+      moveServo(hand, servo2, s2_relax);
+    }
+
+    void big_open() {
+      moveServo(hand, servo2, s2_open);
+    }
+
+    void big_full_close() {
+      moveServo(hand, servo1, s1_close);
+    }
+
+    void big_half_close() {
+      moveServo(hand, servo1, s1_half_close);
+    }
 
     void print_info() {
       Serial.println("Finger");
@@ -110,21 +147,20 @@ class WebsocketWorker
       for (uint8_t i = 0; i < vSize; i++)
         for (uint8_t j = 0; j < hSize; j++)
           command[i][j] = '\0';
-      // for (uint8_t i = 0; i < fingersCount; i++) 
-      //   fingers_settings[i] = Finger();
-      // for (uint8_t i = 0; i < notesCount; i++) 
-      //   notes[i] = Note();
     }
 
     Finger fingers_settings[fingersCount];
     Note notes[notesCount];
-    uint8_t fingers_current_positions[fingersCount];
+    uint8_t fingers_current_positions[fingersCount] = {0, 1, 1, 1, 1, 1, 0, 0};
+    uint8_t fingers_required_positions[fingersCount] = {0, 1, 1, 1, 1, 1, 0, 0};
 
     void processCommand(char *buff) {
       uint8_t buff_index = 0;
       uint8_t argument_number = 0;
       uint8_t argument_index = 0;
+
       init(); //TODO Rename
+
       while (buff[buff_index] != '\0') {
         while (buff[buff_index] != ';' && buff[buff_index] != '\0') {
           command[argument_number][argument_index] = buff[buff_index];
@@ -156,6 +192,7 @@ class WebsocketWorker
         scheduleTimer = millis();
         Serial.println("Timer reset");
       }
+
       if (commandEquals("/move_servo")) {
         Serial.println("Trying to move servo");
         char hand = command[1][0];
@@ -172,7 +209,6 @@ class WebsocketWorker
 
         // simple finger
         if (command[3][0] == 's') {
-          
           fingers_settings[finger_number].type = 's';
           fingers_settings[finger_number].servo1 = atoi(command[4]);
           fingers_settings[finger_number].open = atoi(command[5]);
@@ -180,7 +216,6 @@ class WebsocketWorker
         }
         // double finger
         else if (command[3][0] == 'd') {
-
           fingers_settings[finger_number].type = 'd';
           fingers_settings[finger_number].servo1 = atoi(command[4]);
           fingers_settings[finger_number].servo2 = atoi(command[5]);
@@ -193,7 +228,6 @@ class WebsocketWorker
         }
         // big finger
         else if (command[3][0] == 'b') {
-
           fingers_settings[finger_number].type = 'b';
           fingers_settings[finger_number].servo1 = atoi(command[4]);
           fingers_settings[finger_number].servo2 = atoi(command[5]);
@@ -215,6 +249,7 @@ class WebsocketWorker
         }
       }
 
+      // выводим в Serial информацию о сохранённых нотах
       if (commandEquals("/show_info")) {
         for (int i = 0; i < fingersCount; i++) {
           Serial.println("testing finger");
@@ -228,57 +263,127 @@ class WebsocketWorker
         }
       }
 
-      
+      // подготовка пальцев к игре - выставляем их в заранее известное положение
       if (commandEquals("/prepare_fingers")) {
-        
-        // TODO выставляем все пальцы в нужные позиции
 
+        Serial.println("Prepare fingers");
         for (int i = 0; i < fingersCount; i++) {
           if (fingers_settings[i].type == 's') {
-            Serial.println("prepare simple");
-            fingers_current_positions[]
+            fingers_settings[i].simple_close();
           }
           if (fingers_settings[i].type == 'd') {
-            Serial.println("prepare double");
+            fingers_settings[i].double_open();
           }
           if (fingers_settings[i].type == 'b') {
-            Serial.println("prepare big");
+            fingers_settings[i].big_relax();
+            vTaskDelay(100);
+            fingers_settings[i].big_open();
           }
         }
       }
 
+      // играем ноту
       if (commandEquals("/play_note")) {
         Serial.println("Play note");
 
+        // аргументы - нота и её длительность
         uint16_t note_number = resolveNote(command[1]);
         uint16_t time = atoi(command[2]);
+
+        // заполняем массив "необходимая позиция" позициями пальцев для выбранной ноты
+        for (int i = 0; i < fingersCount; i++) 
+          fingers_required_positions[i] = notes[note_number].positions[i];
+
+        // открываем клапан
+        pinMode(VALVE_PIN, HIGH); 
         
-        pinMode(33, HIGH); // открываем клапан
-        
-        // TODO взятие ноты
+        // взятие ноты
+        // перебираем все пальцы, переставляем каждый
+        for (int i = 0; i < fingersCount; i++) {
+          // проверяем нужно ли менять позицию пальца
+          if (fingers_required_positions[i] != fingers_current_positions[i]) {
+            // для simple пальца
+            if (fingers_settings[i].type == 's') {
+              if (fingers_required_positions[i] == 1) {
+                fingers_settings[i].simple_close();
+              }
+              else {
+                fingers_settings[i].simple_open();
+              }
+            }
+            // для double пальца
+            else if (fingers_settings[i].type == 'd') {
+              if (fingers_required_positions[i] == 0) {
+                fingers_settings[i].double_open();
+              }
+              else if (fingers_required_positions[i] == 1) {
+                fingers_settings[i].double_open();
+                vTaskDelay(100);
+                fingers_settings[i].double_close_one_hole();
+              }
+              else if (fingers_required_positions[i] == 2) {
+                fingers_settings[i].double_open();
+                vTaskDelay(100);
+                fingers_settings[i].double_close_two_holes();
+              }
+            }
+            // для big пальца
+            else if (fingers_settings[i].type == 'b') {
+              if (fingers_required_positions[i] == 0) {
+                fingers_settings[i].big_relax();
+                vTaskDelay(100);
+                fingers_settings[i].big_open();
+              }
+              else if (fingers_required_positions[i] == 1) {
+                fingers_settings[i].big_relax();
+                vTaskDelay(100);
+                fingers_settings[i].big_full_close();
+              }
+              else if (fingers_required_positions[i] == 2) {
+                fingers_settings[i].big_relax();
+                vTaskDelay(100);
+                fingers_settings[i].big_half_close();
+              }
+            }
+          }
+        }
+
+        // играем ноту заданное время
+        vTaskDelay(time);
+
+        // закрываем клапан
+        pinMode(VALVE_PIN, HIGH); 
+
+        // обновляем текущее положение пальцев
+        for (int i = 0; i < fingersCount; i++)
+          fingers_current_positions[i] = fingers_required_positions[i];
 
       }
 
+      // задержка
       if (commandEquals("/delay")) { 
         Serial.println("Delay");
         uint16_t time = atoi(command[1]);
 
-        pinMode(25, LOW); // закрываем клапан
+        // закрываем клапан
+        pinMode(VALVE_PIN, LOW); 
         vTaskDelay(time);
       }
 
+      // переключение клапана
       if (commandEquals("/turn_valve")) {
         Serial.println("Turn Valve");
         bool turn = atoi(command[1]);
-        if (turn) pinMode(25, HIGH);
-        else pinMode(25, LOW);
+        if (turn) pinMode(VALVE_PIN, HIGH);
+        else pinMode(VALVE_PIN, LOW);
       }
 
+      // переключение компрессора
       if (commandEquals("/turn_compressor")) {
         Serial.println("Turn Compressor");
         bool turn = atoi(command[1]);
-        if (turn) pinMode(33, HIGH);
-        else pinMode(33, LOW);
+        if (turn) pinMode(COMPRESSOR_PIN, HIGH);
+        else pinMode(COMPRESSOR_PIN, LOW);
       }
     }
 

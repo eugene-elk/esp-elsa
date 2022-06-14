@@ -19,3 +19,15 @@
 /setup_note;A#;1;1;0;1;1;0;0;0
 /setup_note;B;1;1;0;0;0;0;0;0
 /show_info
+/prepare_fingers
+/turn_compressor;1
+/delay;1
+/play_note;C;1
+/delay;1
+/play_note;D;1
+/delay;1
+/play_note;E;1
+/delay;1
+/play_note;F;1
+/delay;1
+/turn_compressor;0
