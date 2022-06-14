@@ -82,9 +82,8 @@ class Finger
     void print_info() {
       Serial.println("Finger");
       
-      Serial.println(this->hand);
-      Serial.println(this->type);
-
+      Serial.println(hand);
+      Serial.println(type);
       
       Serial.printf("Hand: %c, Type: %c \n", hand, type);
 

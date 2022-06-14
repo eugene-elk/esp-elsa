@@ -49,7 +49,8 @@ boolean flag;
 const char* ssid     = "CyberTheater";
 const char* password = "intelnuc";
 char path[] = "/ws/elsa";
-char host[] = "192.168.88.10";
+// char host[] = "192.168.88.10"; // комп димы
+char host[] = "192.168.88.14"; // асус лабный
 const uint8_t port = 80;
 
 WebsocketWorker wsHandler;
