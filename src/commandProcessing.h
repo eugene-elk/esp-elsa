@@ -13,7 +13,7 @@ const uint8_t COMPRESSOR_PIN = 33;
 const uint8_t VALVE_PIN = 25;
 
 // задержка между движениями пальца в сложных перестановках пальца
-const uint8_t delayBetweenFingerMoves = 100;
+const uint8_t delayBetweenFingerMoves = 250;
 
 class Finger 
 {
@@ -144,7 +144,7 @@ class WebsocketWorker
 
     // вывод в Serial 
     void showRequiredFingersPositions() {
-      Serial.println("Current fingers positions: ");
+      Serial.println("Required fingers positions: ");
       for (int i = 0; i < fingersCount; i++) {
         Serial.printf("%u ", fingers_current_positions[i]);
       }
@@ -203,11 +203,11 @@ class WebsocketWorker
 
       if (commandEquals("/reset_timer")) {
         scheduleTimer = millis();
-        Serial.println("Timer reset");
+        Serial.println("[command] Timer reset");
       }
 
       if (commandEquals("/move_servo")) {
-        Serial.println("Trying to move servo");
+        Serial.println("[command] Trying to move servo");
         char hand = command[1][0];
         uint8_t servoNum = atoi(command[2]);
         uint8_t degree = atoi(command[3]);
@@ -215,7 +215,7 @@ class WebsocketWorker
       }
 
       if (commandEquals("/setup_finger")) {
-        Serial.println("Setup finger");
+        Serial.println("[command] Setup finger");
         
         uint8_t finger_number = atoi(command[1]); // 0
         fingers_settings[finger_number].hand = command[2][0]; // l
@@ -253,7 +253,7 @@ class WebsocketWorker
       }
 
       if (commandEquals("/setup_note")) {
-        Serial.println("Setup note");
+        Serial.println("[command] Setup note");
 
         uint8_t note_number = resolveNote(command[1]);
         notes[note_number].note_number = note_number;
@@ -276,7 +276,7 @@ class WebsocketWorker
       // подготовка пальцев к игре - выставляем их в заранее известное положение
       if (commandEquals("/prepare_fingers")) {
 
-        Serial.println("Prepare fingers");
+        Serial.println("[command] Prepare fingers");
         
         showCurrentFingersPositions();
 
@@ -298,12 +298,14 @@ class WebsocketWorker
         }
 
         showCurrentFingersPositions();
+
+        Serial.println("Fingers are prepared to play");
         
       }
 
       // играем ноту
       if (commandEquals("/play_note")) {
-        Serial.println("Play note");
+        Serial.println("[command] Play note");
 
         // аргументы - нота и её длительность
         uint16_t note_number = resolveNote(command[1]);
@@ -318,9 +320,8 @@ class WebsocketWorker
 
         showRequiredFingersPositions();
 
-        // открываем клапан
-        digitalWrite(VALVE_PIN, HIGH); 
-        
+        Serial.println("Taking note");
+
         // взятие ноты
         // перебираем все пальцы, переставляем каждый
         for (int i = 0; i < fingersCount; i++) {
@@ -372,23 +373,26 @@ class WebsocketWorker
           }
         }
 
-        // играем ноту заданное время
-        vTaskDelay(time);
-
-        // закрываем клапан
-        // digitalWrite(VALVE_PIN, HIGH); 
 
         // обновляем текущее положение пальцев
         for (int i = 0; i < fingersCount; i++)
           fingers_current_positions[i] = fingers_required_positions[i];
-        
         showCurrentFingersPositions();
+        Serial.println("Start playing note");
 
+        // открываем клапан
+        digitalWrite(VALVE_PIN, HIGH); 
+        
+        // играем ноту заданное время
+        vTaskDelay(time);
+
+        // закрываем клапан
+        digitalWrite(VALVE_PIN, LOW); 
       }
 
       // задержка
       if (commandEquals("/delay")) { 
-        Serial.println("Delay");
+        Serial.println("[command] Delay");
         uint16_t time = atoi(command[1]);
         Serial.printf("Delay time: %u \n", time);
 
@@ -399,18 +403,30 @@ class WebsocketWorker
 
       // переключение клапана
       if (commandEquals("/turn_valve")) {
-        Serial.println("Turn Valve");
-        bool turn = atoi(command[1]);
-        if (turn) digitalWrite(VALVE_PIN, HIGH);
-        else digitalWrite(VALVE_PIN, LOW);
+        Serial.println("[command] Turn Valve");
+        bool turn_on = atoi(command[1]);
+        if (turn_on) {
+          Serial.println("Turning ON valve");
+          digitalWrite(VALVE_PIN, HIGH);
+        }
+        else {
+          Serial.println("Turning OFF valve");
+          digitalWrite(VALVE_PIN, LOW);
+        }
       }
 
       // переключение компрессора
       if (commandEquals("/turn_compressor")) {
-        Serial.println("Turn Compressor");
-        bool turn = atoi(command[1]);
-        if (turn) digitalWrite(COMPRESSOR_PIN, HIGH);
-        else digitalWrite(COMPRESSOR_PIN, LOW);
+        Serial.println("[command] Turn Compressor");
+        bool turn_on = atoi(command[1]);
+        if (turn_on) {
+          Serial.println("Turning ON compressor");
+          digitalWrite(COMPRESSOR_PIN, HIGH);
+        }
+        else {
+          Serial.println("Turning OFF compressor");
+          digitalWrite(COMPRESSOR_PIN, LOW);
+        }
       }
     }
 

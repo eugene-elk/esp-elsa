@@ -49,8 +49,8 @@ boolean flag;
 const char* ssid     = "CyberTheater";
 const char* password = "intelnuc";
 char path[] = "/ws/elsa";
-char host[] = "192.168.88.10"; // комп димы
-// char host[] = "192.168.88.14"; // асус лабный
+// char host[] = "192.168.88.10"; // комп димы
+char host[] = "192.168.88.14"; // асус лабный
 const uint8_t port = 80;
 
 WebsocketWorker wsHandler;
@@ -96,6 +96,9 @@ void setup() {
 
 	pinMode(COMPRESSOR_PIN, OUTPUT); // compressor
     pinMode(VALVE_PIN, OUTPUT); // valve
+
+	digitalWrite(COMPRESSOR_PIN, LOW);
+	digitalWrite(VALVE_PIN, LOW);
 	  
     delay(100);
 
