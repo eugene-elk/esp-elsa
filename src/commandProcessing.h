@@ -4,9 +4,11 @@
 const uint8_t vSize = 64;
 const uint8_t hSize = 64;
 
+// количество пальцев (не серв), и количество возможных нот
 const uint8_t fingersCount = 8;
 const uint8_t notesCount = 12;
 
+// куда подключены компрессор и клапан
 const uint8_t COMPRESSOR_PIN = 33;
 const uint8_t VALVE_PIN = 25;
 
@@ -85,15 +87,15 @@ class Finger
       Serial.printf("Hand: %c, Type: %c \n", hand, type);
 
       if (type == 's') {
-        Serial.printf("Pin: %u", servo1);
+        Serial.printf("Pin: %u \n", servo1);
         Serial.printf("Parameters: %u, %u \n", open, close);
       }
       else if (type == 'd') {
-        Serial.printf("Pins: %u %u", servo1, servo2);
+        Serial.printf("Pins: %u %u \n", servo1, servo2);
         Serial.printf("Parameters: %u, %u, %u, %u, %u, %u \n", open_end, open_mid, one_hole_end, one_hole_mid, two_hole_end, two_hole_mid);
       }
       else if (type == 'b') {
-        Serial.printf("Pins: %u %u", servo1, servo2);
+        Serial.printf("Pins: %u %u \n", servo1, servo2);
         Serial.printf("Parameters: %u, %u, %u, %u, %u \n", s1_relax, s2_relax, s2_open, s1_close, s1_half_close);
       }
     }
@@ -121,15 +123,32 @@ class WebsocketWorker
     uint8_t index = 0;
   public:
 
-    // НЕ РАБОТАЕТ, НАДО ФИКСИТЬ
     int8_t resolveNote (char* letter) {
       const char notes[][4] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-      for (uint8_t i = 0; i < sizeof(notes); i++) {
-        if (strcmp(notes[i], letter)) {
+      for (uint8_t i = 0; i < notesCount; i++) {
+        if (!strcmp(notes[i], letter)) {
           return i;
         }
       }
       return -1;
+    }
+
+    // вывод в Serial текущих положений пальцев
+    void showCurrentFingersPositions() {
+      Serial.println("Current fingers positions: ");
+      for (int i = 0; i < fingersCount; i++) {
+        Serial.printf("%u ", fingers_current_positions[i]);
+      }
+      Serial.printf("\n");
+    }
+
+    // вывод в Serial 
+    void showRequiredFingersPositions() {
+      Serial.println("Current fingers positions: ");
+      for (int i = 0; i < fingersCount; i++) {
+        Serial.printf("%u ", fingers_current_positions[i]);
+      }
+      Serial.printf("\n");
     }
 
     char schedule[256][64];
@@ -181,12 +200,6 @@ class WebsocketWorker
       }
 
       argument_number -= 2;
-      // Serial.print("command[0]: ");
-      // Serial.println(command[0]);
-      // Serial.print("command[1]: ");
-      // Serial.println(command[1]);
-      // Serial.print("command[2]: ");
-      // Serial.println(command[2]);
 
       if (commandEquals("/reset_timer")) {
         scheduleTimer = millis();
@@ -242,7 +255,8 @@ class WebsocketWorker
       if (commandEquals("/setup_note")) {
         Serial.println("Setup note");
 
-        int8_t note_number = resolveNote(command[1]);
+        uint8_t note_number = resolveNote(command[1]);
+        notes[note_number].note_number = note_number;
 
         for (int i = 0; i < 8; i++) {
           notes[note_number].positions[i] = atoi(command[i+2]);
@@ -263,19 +277,28 @@ class WebsocketWorker
       if (commandEquals("/prepare_fingers")) {
 
         Serial.println("Prepare fingers");
+        
+        showCurrentFingersPositions();
+
         for (int i = 0; i < fingersCount; i++) {
           if (fingers_settings[i].type == 's') {
             fingers_settings[i].simple_close();
+            fingers_current_positions[i] = 1;
           }
           if (fingers_settings[i].type == 'd') {
             fingers_settings[i].double_open();
+            fingers_current_positions[i] = 0;
           }
           if (fingers_settings[i].type == 'b') {
             fingers_settings[i].big_relax();
             vTaskDelay(100);
             fingers_settings[i].big_open();
+            fingers_current_positions[i] = 0;
           }
         }
+
+        showCurrentFingersPositions();
+        
       }
 
       // играем ноту
@@ -286,12 +309,17 @@ class WebsocketWorker
         uint16_t note_number = resolveNote(command[1]);
         uint16_t time = atoi(command[2]);
 
+        Serial.printf("Note name: %s, note number: %u \n", String(command[1]), note_number);
+        Serial.printf("Note time: %u \n", time);
+
         // заполняем массив "необходимая позиция" позициями пальцев для выбранной ноты
         for (int i = 0; i < fingersCount; i++) 
           fingers_required_positions[i] = notes[note_number].positions[i];
 
+        showRequiredFingersPositions();
+
         // открываем клапан
-        pinMode(VALVE_PIN, HIGH); 
+        digitalWrite(VALVE_PIN, HIGH); 
         
         // взятие ноты
         // перебираем все пальцы, переставляем каждый
@@ -348,11 +376,13 @@ class WebsocketWorker
         vTaskDelay(time);
 
         // закрываем клапан
-        pinMode(VALVE_PIN, HIGH); 
+        // digitalWrite(VALVE_PIN, HIGH); 
 
         // обновляем текущее положение пальцев
         for (int i = 0; i < fingersCount; i++)
           fingers_current_positions[i] = fingers_required_positions[i];
+        
+        showCurrentFingersPositions();
 
       }
 
@@ -360,9 +390,10 @@ class WebsocketWorker
       if (commandEquals("/delay")) { 
         Serial.println("Delay");
         uint16_t time = atoi(command[1]);
+        Serial.printf("Delay time: %u \n", time);
 
         // закрываем клапан
-        pinMode(VALVE_PIN, LOW); 
+        digitalWrite(VALVE_PIN, LOW); 
         vTaskDelay(time);
       }
 
@@ -370,16 +401,16 @@ class WebsocketWorker
       if (commandEquals("/turn_valve")) {
         Serial.println("Turn Valve");
         bool turn = atoi(command[1]);
-        if (turn) pinMode(VALVE_PIN, HIGH);
-        else pinMode(VALVE_PIN, LOW);
+        if (turn) digitalWrite(VALVE_PIN, HIGH);
+        else digitalWrite(VALVE_PIN, LOW);
       }
 
       // переключение компрессора
       if (commandEquals("/turn_compressor")) {
         Serial.println("Turn Compressor");
         bool turn = atoi(command[1]);
-        if (turn) pinMode(COMPRESSOR_PIN, HIGH);
-        else pinMode(COMPRESSOR_PIN, LOW);
+        if (turn) digitalWrite(COMPRESSOR_PIN, HIGH);
+        else digitalWrite(COMPRESSOR_PIN, LOW);
       }
     }
 
