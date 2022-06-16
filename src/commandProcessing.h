@@ -373,7 +373,6 @@ class WebsocketWorker
           }
         }
 
-
         // обновляем текущее положение пальцев
         for (int i = 0; i < fingersCount; i++)
           fingers_current_positions[i] = fingers_required_positions[i];
@@ -381,12 +380,14 @@ class WebsocketWorker
         Serial.println("Start playing note");
 
         // открываем клапан
+        Serial.println("Turning ON valve");
         digitalWrite(VALVE_PIN, HIGH); 
         
         // играем ноту заданное время
         vTaskDelay(time);
 
         // закрываем клапан
+        Serial.println("Turning OFF valve");
         digitalWrite(VALVE_PIN, LOW); 
       }
 
@@ -397,6 +398,7 @@ class WebsocketWorker
         Serial.printf("Delay time: %u \n", time);
 
         // закрываем клапан
+        Serial.println("Turning OFF valve");
         digitalWrite(VALVE_PIN, LOW); 
         vTaskDelay(time);
       }
