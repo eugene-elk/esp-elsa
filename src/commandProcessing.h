@@ -191,6 +191,7 @@ class WebsocketWorker
         argument_number++;
         argument_index = 0;
       }
+      command[argument_number][argument_index] = '\0';
 
       if (isdigit(command[0][0])) {
         for(int i = 0; i < strlen(buff); i++) {
