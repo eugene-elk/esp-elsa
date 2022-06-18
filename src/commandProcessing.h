@@ -191,7 +191,8 @@ class WebsocketWorker
         argument_number++;
         argument_index = 0;
       }
-      command[argument_number][argument_index] = '\0';
+      command[argument_number][argument_index - 1] = '\0';
+
 
       if (isdigit(command[0][0])) {
         for(int i = 0; i < strlen(buff); i++) {
@@ -314,11 +315,12 @@ class WebsocketWorker
 
         Serial.printf("Note name: %s, note number: %u \n", String(command[1]), note_number);
 
+        /*
         Serial.println("Time from server");
         for (int i = 0; i < sizeof(command[2]); i++) {
           Serial.println(command[2][i]);
         }
-
+        */ 
         Serial.printf("Note time after atoi: %u \n", time);
 
         // заполняем массив "необходимая позиция" позициями пальцев для выбранной ноты
