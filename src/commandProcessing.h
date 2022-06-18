@@ -313,7 +313,13 @@ class WebsocketWorker
         uint16_t time = atoi(command[2]);
 
         Serial.printf("Note name: %s, note number: %u \n", String(command[1]), note_number);
-        Serial.printf("Note time: %u \n", time);
+
+        Serial.println("Time from server");
+        for (int i = 0; i < sizeof(command[2]); i++) {
+          Serial.println(command[2][i]);
+        }
+
+        Serial.printf("Note time after atoi: %u \n", time);
 
         // заполняем массив "необходимая позиция" позициями пальцев для выбранной ноты
         for (int i = 0; i < fingersCount; i++) 
