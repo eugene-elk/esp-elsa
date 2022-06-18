@@ -58,11 +58,45 @@ WebsocketWorker wsHandler;
 WebSocketsClient webSocket;
 #include <string>
 
-void moveServo(char hand, uint8_t index, uint8_t degree){
-  String command = "s" + String(index) + " " + "a w" + String(degree) + " ";
-  if(hand == 'r') driverR.print(command);
-  if(hand == 'l') driverL.print(command);
+
+struct ServoCommand {
+	char type;
+	uint8_t argument;
+	uint8_t crc;
+};
+
+uint8_t startFrame = '/';
+void sendWithChecksum(ServoCommand command, char hand) {
+	if(command.argument == startFrame) command.argument++;
+  	command.crc = command.type + command.argument;
+  	if(command.crc == startFrame) command.crc++;
+	
+	SoftwareSerial *driver;
+	if(hand == 'r') driver = &driverR;
+	if(hand == 'l') driver = &driverL;
+	for (uint8_t i = 0; i < 4; i++) {
+		driver->write(startFrame);
+  	  	driver->write(reinterpret_cast<char *>(& command), sizeof(command));
+  }
 }
+
+
+void moveServo(char hand, uint8_t index, uint8_t degree){
+    ServoCommand command;
+	command.type = 's';
+	command.argument = index;
+	sendWithChecksum(command, hand);
+	Serial.printf("\nType %c, Argument %u\n", command.type, command.argument);
+
+	command.type = 'a';
+	sendWithChecksum(command, hand);
+	Serial.printf("\nType %c, Argument %u\n", command.type, command.argument);
+
+	command.type = 'w';
+	command.argument = degree;
+	sendWithChecksum(command, hand);
+	Serial.printf("\nType %c, Argument %u\n", command.type, command.argument);
+};
 
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
