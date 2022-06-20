@@ -13,7 +13,7 @@ const uint8_t COMPRESSOR_PIN = 33;
 const uint8_t VALVE_PIN = 25;
 
 // задержка между движениями пальца в сложных перестановках пальца
-const uint8_t delayBetweenFingerMoves = 300;
+const int16_t delayBetweenFingerMoves = 300;
 
 class Finger 
 {
@@ -173,6 +173,71 @@ class WebsocketWorker
     uint8_t fingers_current_positions[fingersCount] = {0, 1, 1, 1, 1, 1, 0, 0};
     uint8_t fingers_required_positions[fingersCount] = {0, 1, 1, 1, 1, 1, 0, 0};
 
+    void take_note(uint8_t note_number) {
+      Serial.println("Taking note [void]");
+      // заполняем массив "необходимая позиция" позициями пальцев для выбранной ноты
+      for (int i = 0; i < fingersCount; i++) 
+        fingers_required_positions[i] = notes[note_number].positions[i];
+      showRequiredFingersPositions();
+
+      // взятие ноты
+      // перебираем все пальцы, переставляем каждый
+      for (int i = 0; i < fingersCount; i++) {
+        // проверяем нужно ли менять позицию пальца
+        if (fingers_required_positions[i] != fingers_current_positions[i]) {
+          // для simple пальца
+          if (fingers_settings[i].type == 's') {
+            if (fingers_required_positions[i] == 1) {
+              fingers_settings[i].simple_close();
+            }
+            else {
+              fingers_settings[i].simple_open();
+            }
+          }
+          // для double пальца
+          else if (fingers_settings[i].type == 'd') {
+            if (fingers_required_positions[i] == 0) {
+              fingers_settings[i].double_open();
+            }
+            else if (fingers_required_positions[i] == 1) {
+              fingers_settings[i].double_open();
+              vTaskDelay(delayBetweenFingerMoves);
+              fingers_settings[i].double_close_one_hole();
+            }
+            else if (fingers_required_positions[i] == 2) {
+              fingers_settings[i].double_open();
+              vTaskDelay(delayBetweenFingerMoves);
+              fingers_settings[i].double_close_two_holes();
+            }
+          }
+          // для big пальца
+          else if (fingers_settings[i].type == 'b') {
+            if (fingers_required_positions[i] == 0) {
+              fingers_settings[i].big_relax();
+              vTaskDelay(delayBetweenFingerMoves);
+              fingers_settings[i].big_open();
+            }
+            else if (fingers_required_positions[i] == 1) {
+              fingers_settings[i].big_open();
+              fingers_settings[i].big_relax();
+              vTaskDelay(delayBetweenFingerMoves);
+              fingers_settings[i].big_full_close();
+            }
+            else if (fingers_required_positions[i] == 2) {
+              fingers_settings[i].big_relax();
+              vTaskDelay(delayBetweenFingerMoves);
+              fingers_settings[i].big_half_close();
+            }
+          }
+        }
+      }
+
+      // обновляем текущее положение пальцев
+      for (int i = 0; i < fingersCount; i++)
+        fingers_current_positions[i] = fingers_required_positions[i];
+      showCurrentFingersPositions();
+    }
+
     void processCommand(char *buff) {
       uint8_t buff_index = 0;
       uint8_t argument_number = 0;
@@ -295,7 +360,7 @@ class WebsocketWorker
           }
           if (fingers_settings[i].type == 'b') {
             fingers_settings[i].big_relax();
-            vTaskDelay(100);
+            vTaskDelay(delayBetweenFingerMoves);
             fingers_settings[i].big_open();
             fingers_current_positions[i] = 0;
           }
@@ -305,6 +370,17 @@ class WebsocketWorker
 
         Serial.println("Fingers are prepared to play");
         
+      }
+
+      if (commandEquals("/take_note")) {
+        Serial.println("[command] Take note");
+        
+        // аргумент - нота
+        uint16_t note_number = resolveNote(command[1]);
+
+        Serial.printf("Note name: %s, note number: %u \n", String(command[1]), note_number);
+
+        take_note(note_number);
       }
 
       // играем ноту
@@ -325,69 +401,7 @@ class WebsocketWorker
         */ 
         Serial.printf("Note time after atoi: %u \n", time);
 
-        // заполняем массив "необходимая позиция" позициями пальцев для выбранной ноты
-        for (int i = 0; i < fingersCount; i++) 
-          fingers_required_positions[i] = notes[note_number].positions[i];
-
-        showRequiredFingersPositions();
-
-        Serial.println("Taking note");
-
-        // взятие ноты
-        // перебираем все пальцы, переставляем каждый
-        for (int i = 0; i < fingersCount; i++) {
-          // проверяем нужно ли менять позицию пальца
-          if (fingers_required_positions[i] != fingers_current_positions[i]) {
-            // для simple пальца
-            if (fingers_settings[i].type == 's') {
-              if (fingers_required_positions[i] == 1) {
-                fingers_settings[i].simple_close();
-              }
-              else {
-                fingers_settings[i].simple_open();
-              }
-            }
-            // для double пальца
-            else if (fingers_settings[i].type == 'd') {
-              if (fingers_required_positions[i] == 0) {
-                fingers_settings[i].double_open();
-              }
-              else if (fingers_required_positions[i] == 1) {
-                fingers_settings[i].double_open();
-                vTaskDelay(delayBetweenFingerMoves);
-                fingers_settings[i].double_close_one_hole();
-              }
-              else if (fingers_required_positions[i] == 2) {
-                fingers_settings[i].double_open();
-                vTaskDelay(delayBetweenFingerMoves);
-                fingers_settings[i].double_close_two_holes();
-              }
-            }
-            // для big пальца
-            else if (fingers_settings[i].type == 'b') {
-              if (fingers_required_positions[i] == 0) {
-                fingers_settings[i].big_relax();
-                vTaskDelay(delayBetweenFingerMoves);
-                fingers_settings[i].big_open();
-              }
-              else if (fingers_required_positions[i] == 1) {
-                fingers_settings[i].big_relax();
-                vTaskDelay(delayBetweenFingerMoves);
-                fingers_settings[i].big_full_close();
-              }
-              else if (fingers_required_positions[i] == 2) {
-                fingers_settings[i].big_relax();
-                vTaskDelay(delayBetweenFingerMoves);
-                fingers_settings[i].big_half_close();
-              }
-            }
-          }
-        }
-
-        // обновляем текущее положение пальцев
-        for (int i = 0; i < fingersCount; i++)
-          fingers_current_positions[i] = fingers_required_positions[i];
-        showCurrentFingersPositions();
+        take_note(note_number);
 
         Serial.println("Waiting for fingers to change positions");
         vTaskDelay(300);
