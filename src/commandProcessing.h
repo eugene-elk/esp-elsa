@@ -388,13 +388,16 @@ class WebsocketWorker
         for (int i = 0; i < fingersCount; i++)
           fingers_current_positions[i] = fingers_required_positions[i];
         showCurrentFingersPositions();
-        Serial.println("Start playing note");
+
+        Serial.println("Waiting for fingers to change positions");
+        vTaskDelay(300);
 
         // открываем клапан
         Serial.println("Turning ON valve");
         digitalWrite(VALVE_PIN, HIGH); 
         
         // играем ноту заданное время
+        Serial.println("Playing note");
         vTaskDelay(time);
 
         // закрываем клапан
