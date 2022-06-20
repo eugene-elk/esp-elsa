@@ -13,7 +13,7 @@ const uint8_t COMPRESSOR_PIN = 33;
 const uint8_t VALVE_PIN = 25;
 
 // задержка между движениями пальца в сложных перестановках пальца
-const uint8_t delayBetweenFingerMoves = 250;
+const uint8_t delayBetweenFingerMoves = 300;
 
 class Finger 
 {
@@ -209,10 +209,12 @@ class WebsocketWorker
       }
 
       if (commandEquals("/move_servo")) {
-        Serial.println("[command] Trying to move servo");
+        Serial.println("[command] Move servo");
         char hand = command[1][0];
         uint8_t servoNum = atoi(command[2]);
         uint8_t degree = atoi(command[3]);
+
+        Serial.printf("Hand: %c, Number: %u, Degree: %u \n", hand, servoNum, degree);
         moveServo(hand, servoNum, degree);
       }
 
@@ -464,7 +466,7 @@ class WebsocketWorker
           for(y = 0; y < (strlen(schedule[lineIndex]) - semicolonIndex - 1); y++) {
             buff[y] = schedule[lineIndex][y + semicolonIndex + 1];
           }
-          buff[y + 1] = '\0';
+          buff[y] = '\0';
           // Serial.println();
           // Serial.print("Processing: ");
           // Serial.println(buff);

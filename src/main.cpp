@@ -77,7 +77,7 @@ void sendWithChecksum(ServoCommand command, char hand) {
 	for (uint8_t i = 0; i < 4; i++) {
 		driver->write(startFrame);
   	  	driver->write(reinterpret_cast<char *>(& command), sizeof(command));
-  }
+  	}
 }
 
 
