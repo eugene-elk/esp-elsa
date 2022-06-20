@@ -17,6 +17,9 @@ const uint8_t Stepper_DIR_PIN = 21;
 const uint8_t Stepper_STEP_PIN = 22;
 const uint8_t Stepper_ENA_PIN = 23;
 
+// задержка шага, шаговик
+const uint16_t stepperDelay = 2000;
+
 // задержка между движениями пальца в сложных перестановках пальца
 const int16_t delayBetweenFingerMoves = 300;
 
@@ -179,6 +182,7 @@ class WebsocketWorker
     Note notes[notesCount];
     uint8_t fingers_current_positions[fingersCount] = {1, 1, 1, 1, 1, 1, 0, 0};
     uint8_t fingers_required_positions[fingersCount] = {1, 1, 1, 1, 1, 1, 0, 0};
+    uint16_t current_stepper_position = 200;
 
     void take_note(uint8_t note_number) {
       Serial.println("Taking note [void]");
@@ -350,12 +354,13 @@ class WebsocketWorker
       }
 
       // подготовка пальцев к игре - выставляем их в заранее известное положение
-      if (commandEquals("/prepare_fingers")) {
+      if (commandEquals("/prepare")) {
 
-        Serial.println("[command] Prepare fingers");
+        Serial.println("[command] Prepare");
         
         // showCurrentFingersPositions();
 
+        // готовим пальцы
         for (int i = 0; i < fingersCount; i++) {
           if (fingers_settings[i].type == 's') {
             fingers_settings[i].simple_close();
@@ -375,10 +380,35 @@ class WebsocketWorker
             fingers_current_positions[i] = 1;
           }
         }
-
         // showCurrentFingersPositions();
 
-        Serial.println("Fingers are prepared to play");
+        // готовим шаговик (возвращаем в ноль)
+
+        Serial.printf("Current stepper pos: %u", current_stepper_position);
+
+        digitalWrite(Stepper_ENA_PIN, LOW);
+
+        if (current_stepper_position < 0) {
+          Serial.println("move forward");
+          digitalWrite(Stepper_DIR_PIN, HIGH);
+        }
+        else {
+          Serial.println("move backward");
+          digitalWrite(Stepper_DIR_PIN, LOW);
+        }
+        
+        for (int i = current_stepper_position; i != 0; (current_stepper_position > 0 ? i-- : i++)) {
+          digitalWrite(Stepper_STEP_PIN, HIGH);
+          delayMicroseconds(stepperDelay);
+          digitalWrite(Stepper_STEP_PIN, LOW);
+          delayMicroseconds(stepperDelay);
+        }
+        current_stepper_position = 0;
+        digitalWrite(Stepper_ENA_PIN, LOW);
+
+        Serial.printf("New current stepper pos: %u", current_stepper_position);
+
+        Serial.println("Ready to play");
       }
 
       if (commandEquals("/take_note")) {
@@ -399,21 +429,17 @@ class WebsocketWorker
         // аргументы - нота и её длительность
         uint16_t note_number = resolveNote(command[1]);
         uint16_t time = atoi(command[2]);
+        uint16_t stepper_pose = atoi(command[3]);
 
         Serial.printf("Note name: %s, note number: %u \n", String(command[1]), note_number);
-
-        /*
-        Serial.println("Time from server");
-        for (int i = 0; i < sizeof(command[2]); i++) {
-          Serial.println(command[2][i]);
-        }
-        */ 
         Serial.printf("Note time after atoi: %u \n", time);
 
         take_note(note_number);
 
         Serial.println("Waiting for fingers to change positions");
         vTaskDelay(300);
+
+        // ЗДЕСЬ ДОБАВИТЬ ПОВОРОТ ШАГОВИКА
 
         // открываем клапан
         Serial.println("Turning ON valve");
