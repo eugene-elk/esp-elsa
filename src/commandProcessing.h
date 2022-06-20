@@ -6,7 +6,7 @@ const uint8_t hSize = 64;
 
 // количество пальцев (не серв), и количество возможных нот
 const uint8_t fingersCount = 8;
-const uint8_t notesCount = 12;
+const uint8_t notesCount = 16;
 
 // куда подключены компрессор и клапан
 const uint8_t COMPRESSOR_PIN = 33;
@@ -55,13 +55,15 @@ class Finger
     }
 
     void double_close_one_hole() {
-      moveServo(hand, servo1, one_hole_end);
       moveServo(hand, servo2, one_hole_mid);
+      vTaskDelay(delayBetweenFingerMoves);
+      moveServo(hand, servo1, one_hole_end);
     }
 
     void double_close_two_holes() {
-      moveServo(hand, servo1, two_hole_end);
       moveServo(hand, servo2, two_hole_mid);
+      vTaskDelay(delayBetweenFingerMoves);
+      moveServo(hand, servo1, two_hole_end);
     }
 
     void big_relax() {
@@ -124,7 +126,7 @@ class WebsocketWorker
   public:
 
     int8_t resolveNote (char* letter) {
-      const char notes[][4] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+      const char notes[][4] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B", "C2", "C#2", "D2", "D#2"};
       for (uint8_t i = 0; i < notesCount; i++) {
         if (!strcmp(notes[i], letter)) {
           return i;
@@ -170,15 +172,15 @@ class WebsocketWorker
 
     Finger fingers_settings[fingersCount];
     Note notes[notesCount];
-    uint8_t fingers_current_positions[fingersCount] = {0, 1, 1, 1, 1, 1, 0, 0};
-    uint8_t fingers_required_positions[fingersCount] = {0, 1, 1, 1, 1, 1, 0, 0};
+    uint8_t fingers_current_positions[fingersCount] = {1, 1, 1, 1, 1, 1, 0, 0};
+    uint8_t fingers_required_positions[fingersCount] = {1, 1, 1, 1, 1, 1, 0, 0};
 
     void take_note(uint8_t note_number) {
       Serial.println("Taking note [void]");
       // заполняем массив "необходимая позиция" позициями пальцев для выбранной ноты
       for (int i = 0; i < fingersCount; i++) 
         fingers_required_positions[i] = notes[note_number].positions[i];
-      showRequiredFingersPositions();
+      // showRequiredFingersPositions();
 
       // взятие ноты
       // перебираем все пальцы, переставляем каждый
@@ -235,7 +237,7 @@ class WebsocketWorker
       // обновляем текущее положение пальцев
       for (int i = 0; i < fingersCount; i++)
         fingers_current_positions[i] = fingers_required_positions[i];
-      showCurrentFingersPositions();
+      //showCurrentFingersPositions();
     }
 
     void processCommand(char *buff) {
@@ -347,7 +349,7 @@ class WebsocketWorker
 
         Serial.println("[command] Prepare fingers");
         
-        showCurrentFingersPositions();
+        // showCurrentFingersPositions();
 
         for (int i = 0; i < fingersCount; i++) {
           if (fingers_settings[i].type == 's') {
@@ -359,14 +361,17 @@ class WebsocketWorker
             fingers_current_positions[i] = 0;
           }
           if (fingers_settings[i].type == 'b') {
+            fingers_settings[i].big_open();
             fingers_settings[i].big_relax();
             vTaskDelay(delayBetweenFingerMoves);
-            fingers_settings[i].big_open();
-            fingers_current_positions[i] = 0;
+            fingers_settings[i].big_full_close();
+            vTaskDelay(delayBetweenFingerMoves);
+            fingers_settings[i].big_relax();
+            fingers_current_positions[i] = 1;
           }
         }
 
-        showCurrentFingersPositions();
+        // showCurrentFingersPositions();
 
         Serial.println("Fingers are prepared to play");
         
@@ -423,17 +428,17 @@ class WebsocketWorker
       if (commandEquals("/delay")) { 
         Serial.println("[command] Delay");
         uint16_t time = atoi(command[1]);
-        Serial.printf("Delay time: %u \n", time);
+        // Serial.printf("Delay time: %u \n", time);
 
         // закрываем клапан
-        Serial.println("Turning OFF valve");
+        // Serial.println("Turning OFF valve");
         digitalWrite(VALVE_PIN, LOW); 
         vTaskDelay(time);
       }
 
       // переключение клапана
       if (commandEquals("/turn_valve")) {
-        Serial.println("[command] Turn Valve");
+        // Serial.println("[command] Turn Valve");
         bool turn_on = atoi(command[1]);
         if (turn_on) {
           Serial.println("Turning ON valve");

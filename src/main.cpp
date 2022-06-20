@@ -110,7 +110,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 			webSocket.sendTXT("Connected");
 			break;
 		case WStype_TEXT:
-			pcSerial.printf("[WSc] Got text: %s\n", payload);
+			// pcSerial.printf("[WSc] Got text: %s\n", payload);
       		wsHandler.processCommand((char*)payload);
 			// send message to server
 			// webSocket.sendTXT("message here");
