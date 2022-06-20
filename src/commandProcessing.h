@@ -12,6 +12,11 @@ const uint8_t notesCount = 16;
 const uint8_t COMPRESSOR_PIN = 33;
 const uint8_t VALVE_PIN = 25;
 
+// куда подключен шаговик
+const uint8_t Stepper_DIR_PIN = 21;
+const uint8_t Stepper_STEP_PIN = 22;
+const uint8_t Stepper_ENA_PIN = 23;
+
 // задержка между движениями пальца в сложных перестановках пальца
 const int16_t delayBetweenFingerMoves = 300;
 
@@ -374,7 +379,6 @@ class WebsocketWorker
         // showCurrentFingersPositions();
 
         Serial.println("Fingers are prepared to play");
-        
       }
 
       if (commandEquals("/take_note")) {
@@ -462,6 +466,34 @@ class WebsocketWorker
           Serial.println("Turning OFF compressor");
           digitalWrite(COMPRESSOR_PIN, LOW);
         }
+      }
+
+      // тест поворота шаговика
+      if (commandEquals("/move_stepper")) {
+        Serial.println("[command] Move Stepper");
+
+        char direction = command[1][0]; // f - forward, b - backward
+        uint16_t steps = atoi(command[2]);
+
+        digitalWrite(Stepper_ENA_PIN, LOW);
+
+        if (direction == 'f') {
+          Serial.println("move forward");
+          digitalWrite(Stepper_DIR_PIN, HIGH);
+        }
+        else {
+          Serial.println("move backward");
+          digitalWrite(Stepper_DIR_PIN, LOW);
+        }
+
+        for (uint16_t i = 0; i < steps; i++) {
+          digitalWrite(Stepper_STEP_PIN, HIGH);
+          delayMicroseconds(2000);
+          digitalWrite(Stepper_STEP_PIN, LOW);
+          delayMicroseconds(2000);
+          // Serial.printf("%u \n", i);
+        }
+        digitalWrite(Stepper_ENA_PIN, HIGH);
       }
     }
 
