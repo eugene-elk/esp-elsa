@@ -116,6 +116,7 @@ class Note
   public:
     uint8_t note_number;
     uint8_t positions[fingersCount];
+    uint8_t stepper_pos;
     Note() {}
     void print_info() {
       Serial.printf("Note %u \n", note_number);
@@ -133,6 +134,7 @@ class WebsocketWorker
     uint8_t index = 0;
   public:
 
+    // отдаёт номер ноты по её названию
     int8_t resolveNote (char* letter) {
       const char notes[][4] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B", "C2", "C#2", "D2", "D#2"};
       for (uint8_t i = 0; i < notesCount; i++) {
@@ -182,10 +184,41 @@ class WebsocketWorker
     Note notes[notesCount];
     uint8_t fingers_current_positions[fingersCount] = {1, 1, 1, 1, 1, 1, 0, 0};
     uint8_t fingers_required_positions[fingersCount] = {1, 1, 1, 1, 1, 1, 0, 0};
-    uint16_t current_stepper_position = 200;
+    int16_t current_stepper_position = 0;
+    int16_t required_stepper_position = 0;
+
+    void rotate_stepper(uint8_t note_number) 
+    {
+      required_stepper_position = notes[note_number].stepper_pos;
+      Serial.printf("Current stepper pos: %u", current_stepper_position);
+      Serial.printf("Required stepper pos: %u", required_stepper_position);
+
+      digitalWrite(Stepper_ENA_PIN, LOW);
+      if (current_stepper_position < required_stepper_position) {
+        Serial.println("move forward");
+        digitalWrite(Stepper_DIR_PIN, HIGH);
+      }
+      else {
+        Serial.println("move backward");
+        digitalWrite(Stepper_DIR_PIN, LOW);
+      }
+      
+      for (int i = current_stepper_position; i != required_stepper_position; (current_stepper_position > required_stepper_position ? i-- : i++)) {
+        digitalWrite(Stepper_STEP_PIN, HIGH);
+        delayMicroseconds(stepperDelay);
+        digitalWrite(Stepper_STEP_PIN, LOW);
+        delayMicroseconds(stepperDelay);
+      }
+
+      current_stepper_position = required_stepper_position;
+      digitalWrite(Stepper_ENA_PIN, HIGH);
+      Serial.printf("New current stepper pos: %u", current_stepper_position);
+    }
 
     void take_note(uint8_t note_number) {
+
       Serial.println("Taking note [void]");
+
       // заполняем массив "необходимая позиция" позициями пальцев для выбранной ноты
       for (int i = 0; i < fingersCount; i++) 
         fingers_required_positions[i] = notes[note_number].positions[i];
@@ -337,6 +370,7 @@ class WebsocketWorker
 
         uint8_t note_number = resolveNote(command[1]);
         notes[note_number].note_number = note_number;
+        notes[note_number].stepper_pos = atoi(command[10]);
 
         for (int i = 0; i < 8; i++) {
           notes[note_number].positions[i] = atoi(command[i+2]);
@@ -404,7 +438,7 @@ class WebsocketWorker
           delayMicroseconds(stepperDelay);
         }
         current_stepper_position = 0;
-        digitalWrite(Stepper_ENA_PIN, LOW);
+        digitalWrite(Stepper_ENA_PIN, HIGH);
 
         Serial.printf("New current stepper pos: %u", current_stepper_position);
 
@@ -420,6 +454,7 @@ class WebsocketWorker
         Serial.printf("Note name: %s, note number: %u \n", String(command[1]), note_number);
 
         take_note(note_number);
+        rotate_stepper(note_number);
       }
 
       // играем ноту
@@ -434,12 +469,12 @@ class WebsocketWorker
         Serial.printf("Note name: %s, note number: %u \n", String(command[1]), note_number);
         Serial.printf("Note time after atoi: %u \n", time);
 
+        // выставляем пальцы и шаговик в нужные позиции
         take_note(note_number);
+        rotate_stepper(note_number);
 
         Serial.println("Waiting for fingers to change positions");
         vTaskDelay(300);
-
-        // ЗДЕСЬ ДОБАВИТЬ ПОВОРОТ ШАГОВИКА
 
         // открываем клапан
         Serial.println("Turning ON valve");
