@@ -17,8 +17,8 @@ const uint8_t Stepper_DIR_PIN = 21;
 const uint8_t Stepper_STEP_PIN = 22;
 const uint8_t Stepper_ENA_PIN = 23;
 
-// задержка шага, шаговик
-const uint16_t stepperDelay = 2000;
+// задержка шага, шаговик, миллисекунды
+const uint16_t stepperDelay = 2;
 
 // задержка между движениями пальца в сложных перестановках пальца
 const int16_t delayBetweenFingerMoves = 300;
@@ -116,10 +116,11 @@ class Note
   public:
     uint8_t note_number;
     uint8_t positions[fingersCount];
-    uint8_t stepper_pos;
+    int16_t stepper_pos;
     Note() {}
     void print_info() {
       Serial.printf("Note %u \n", note_number);
+      Serial.printf("Stepper pos: %d \n", stepper_pos);
       for(int i = 0; i < fingersCount; i++) {
         Serial.printf("%u ", positions[i]);
       }
@@ -189,9 +190,11 @@ class WebsocketWorker
 
     void rotate_stepper(uint8_t note_number) 
     {
+      Serial.println("Taking note [void]");
+
       required_stepper_position = notes[note_number].stepper_pos;
-      Serial.printf("Current stepper pos: %u", current_stepper_position);
-      Serial.printf("Required stepper pos: %u", required_stepper_position);
+      Serial.printf("Current stepper pos: %d\n", current_stepper_position);
+      Serial.printf("Required stepper pos: %d\n", required_stepper_position);
 
       digitalWrite(Stepper_ENA_PIN, LOW);
       if (current_stepper_position < required_stepper_position) {
@@ -205,14 +208,14 @@ class WebsocketWorker
       
       for (int i = current_stepper_position; i != required_stepper_position; (current_stepper_position > required_stepper_position ? i-- : i++)) {
         digitalWrite(Stepper_STEP_PIN, HIGH);
-        delayMicroseconds(stepperDelay);
+        vTaskDelay(stepperDelay);
         digitalWrite(Stepper_STEP_PIN, LOW);
-        delayMicroseconds(stepperDelay);
+        vTaskDelay(stepperDelay);
       }
 
       current_stepper_position = required_stepper_position;
       digitalWrite(Stepper_ENA_PIN, HIGH);
-      Serial.printf("New current stepper pos: %u", current_stepper_position);
+      Serial.printf("New current stepper pos: %d\n", current_stepper_position);
     }
 
     void take_note(uint8_t note_number) {
@@ -418,7 +421,7 @@ class WebsocketWorker
 
         // готовим шаговик (возвращаем в ноль)
 
-        Serial.printf("Current stepper pos: %u", current_stepper_position);
+        Serial.printf("Current stepper pos: %u \n", current_stepper_position);
 
         digitalWrite(Stepper_ENA_PIN, LOW);
 
@@ -433,14 +436,14 @@ class WebsocketWorker
         
         for (int i = current_stepper_position; i != 0; (current_stepper_position > 0 ? i-- : i++)) {
           digitalWrite(Stepper_STEP_PIN, HIGH);
-          delayMicroseconds(stepperDelay);
+          vTaskDelay(stepperDelay);
           digitalWrite(Stepper_STEP_PIN, LOW);
-          delayMicroseconds(stepperDelay);
+          vTaskDelay(stepperDelay);
         }
         current_stepper_position = 0;
         digitalWrite(Stepper_ENA_PIN, HIGH);
 
-        Serial.printf("New current stepper pos: %u", current_stepper_position);
+        Serial.printf("New current stepper pos: %u \n", current_stepper_position);
 
         Serial.println("Ready to play");
       }
@@ -453,8 +456,8 @@ class WebsocketWorker
 
         Serial.printf("Note name: %s, note number: %u \n", String(command[1]), note_number);
 
-        take_note(note_number);
         rotate_stepper(note_number);
+        take_note(note_number);
       }
 
       // играем ноту
@@ -470,8 +473,8 @@ class WebsocketWorker
         Serial.printf("Note time after atoi: %u \n", time);
 
         // выставляем пальцы и шаговик в нужные позиции
-        take_note(note_number);
         rotate_stepper(note_number);
+        take_note(note_number);
 
         Serial.println("Waiting for fingers to change positions");
         vTaskDelay(300);
@@ -549,9 +552,9 @@ class WebsocketWorker
 
         for (uint16_t i = 0; i < steps; i++) {
           digitalWrite(Stepper_STEP_PIN, HIGH);
-          delayMicroseconds(2000);
+          vTaskDelay(stepperDelay);
           digitalWrite(Stepper_STEP_PIN, LOW);
-          delayMicroseconds(2000);
+          vTaskDelay(stepperDelay);
           // Serial.printf("%u \n", i);
         }
         digitalWrite(Stepper_ENA_PIN, HIGH);
