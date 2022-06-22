@@ -481,7 +481,7 @@ class WebsocketWorker
 
         // открываем клапан
         Serial.println("Turning ON valve");
-        digitalWrite(VALVE_PIN, HIGH); 
+        // digitalWrite(VALVE_PIN, HIGH); 
         
         // играем ноту заданное время
         Serial.println("Playing note");
@@ -489,7 +489,7 @@ class WebsocketWorker
 
         // закрываем клапан
         Serial.println("Turning OFF valve");
-        digitalWrite(VALVE_PIN, LOW); 
+        // digitalWrite(VALVE_PIN, LOW); 
       }
 
       // задержка
@@ -500,13 +500,13 @@ class WebsocketWorker
 
         // закрываем клапан
         // Serial.println("Turning OFF valve");
-        digitalWrite(VALVE_PIN, LOW); 
+        // digitalWrite(VALVE_PIN, LOW); 
         vTaskDelay(time);
       }
 
       // переключение клапана
       if (commandEquals("/turn_valve")) {
-        // Serial.println("[command] Turn Valve");
+        Serial.println("[command] Turn Valve");
         bool turn_on = atoi(command[1]);
         if (turn_on) {
           Serial.println("Turning ON valve");
