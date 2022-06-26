@@ -421,7 +421,7 @@ class WebsocketWorker
 
         // готовим шаговик (возвращаем в ноль)
 
-        Serial.printf("Current stepper pos: %u \n", current_stepper_position);
+        Serial.printf("Current stepper pos: %d \n", current_stepper_position);
 
         digitalWrite(Stepper_ENA_PIN, LOW);
 
@@ -443,7 +443,7 @@ class WebsocketWorker
         current_stepper_position = 0;
         digitalWrite(Stepper_ENA_PIN, HIGH);
 
-        Serial.printf("New current stepper pos: %u \n", current_stepper_position);
+        Serial.printf("New current stepper pos: %d \n", current_stepper_position);
 
         Serial.println("Ready to play");
       }
@@ -467,29 +467,31 @@ class WebsocketWorker
         // аргументы - нота и её длительность
         uint16_t note_number = resolveNote(command[1]);
         uint16_t time = atoi(command[2]);
-        uint16_t stepper_pose = atoi(command[3]);
 
-        Serial.printf("Note name: %s, note number: %u \n", String(command[1]), note_number);
-        Serial.printf("Note time after atoi: %u \n", time);
+        Serial.printf("Note name: %s, %u \n", String(command[1]), note_number);
+        Serial.printf("Note time: %u \n", time);
 
         // выставляем пальцы и шаговик в нужные позиции
         rotate_stepper(note_number);
         take_note(note_number);
 
         Serial.println("Waiting for fingers to change positions");
-        vTaskDelay(300);
+        vTaskDelay(100);
 
+        // на всякий случай включаем компрессор
+        digitalWrite(COMPRESSOR_PIN, HIGH);
         // открываем клапан
         Serial.println("Turning ON valve");
-        // digitalWrite(VALVE_PIN, HIGH); 
+        digitalWrite(VALVE_PIN, HIGH); 
         
         // играем ноту заданное время
         Serial.println("Playing note");
         vTaskDelay(time);
+        Serial.println("Stop playing note");
 
         // закрываем клапан
         Serial.println("Turning OFF valve");
-        // digitalWrite(VALVE_PIN, LOW); 
+        digitalWrite(VALVE_PIN, LOW); 
       }
 
       // задержка

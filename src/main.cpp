@@ -160,7 +160,7 @@ void setup() {
 		delay(500);
 	}
 
-	updateTime();
+	// updateTime();
 	xTaskCreatePinnedToCore(
 		readRtc,                  /* pvTaskCode */
 		"readRtc",            /* pcName */
