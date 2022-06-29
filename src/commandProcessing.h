@@ -193,16 +193,16 @@ class WebsocketWorker
       Serial.println("Taking note [void]");
 
       required_stepper_position = notes[note_number].stepper_pos;
-      Serial.printf("Current stepper pos: %d\n", current_stepper_position);
-      Serial.printf("Required stepper pos: %d\n", required_stepper_position);
+      // Serial.printf("   Current stepper pos: %d\n", current_stepper_position);
+      // Serial.printf("   Required stepper pos: %d\n", required_stepper_position);
 
       digitalWrite(Stepper_ENA_PIN, LOW);
       if (current_stepper_position < required_stepper_position) {
-        Serial.println("move forward");
+        // Serial.println("move forward");
         digitalWrite(Stepper_DIR_PIN, HIGH);
       }
       else {
-        Serial.println("move backward");
+        // Serial.println("move backward");
         digitalWrite(Stepper_DIR_PIN, LOW);
       }
       
@@ -215,7 +215,7 @@ class WebsocketWorker
 
       current_stepper_position = required_stepper_position;
       digitalWrite(Stepper_ENA_PIN, HIGH);
-      Serial.printf("New current stepper pos: %d\n", current_stepper_position);
+      // Serial.printf("   New current stepper pos: %d\n", current_stepper_position);
     }
 
     void take_note(uint8_t note_number) {
@@ -247,13 +247,19 @@ class WebsocketWorker
               fingers_settings[i].double_open();
             }
             else if (fingers_required_positions[i] == 1) {
-              fingers_settings[i].double_open();
-              vTaskDelay(delayBetweenFingerMoves);
+              // перед закрытием палец обязательно нужно открыть (так как при переходе из одного закрытого состояния в другое он застрянет)
+              if (fingers_current_positions[i] == 2) {
+                fingers_settings[i].double_open();
+                vTaskDelay(delayBetweenFingerMoves);  
+              }
               fingers_settings[i].double_close_one_hole();
             }
             else if (fingers_required_positions[i] == 2) {
-              fingers_settings[i].double_open();
-              vTaskDelay(delayBetweenFingerMoves);
+              // перед закрытием палец обязательно нужно открыть (так как при переходе из одного закрытого состояния в другое он застрянет)
+              if (fingers_current_positions[i] == 1) {
+                fingers_settings[i].double_open();
+                vTaskDelay(delayBetweenFingerMoves);  
+              }
               fingers_settings[i].double_close_two_holes();
             }
           }
@@ -263,17 +269,21 @@ class WebsocketWorker
               fingers_settings[i].big_relax();
               vTaskDelay(delayBetweenFingerMoves);
               fingers_settings[i].big_open();
+              // возможно нужно добавить relax
             }
             else if (fingers_required_positions[i] == 1) {
               fingers_settings[i].big_open();
+              vTaskDelay(delayBetweenFingerMoves / 2);
               fingers_settings[i].big_relax();
-              vTaskDelay(delayBetweenFingerMoves);
+              vTaskDelay(delayBetweenFingerMoves / 2);
               fingers_settings[i].big_full_close();
+              // возможно нужно добавить relax
             }
             else if (fingers_required_positions[i] == 2) {
               fingers_settings[i].big_relax();
               vTaskDelay(delayBetweenFingerMoves);
               fingers_settings[i].big_half_close();
+              // возможно нужно добавить relax
             }
           }
         }
@@ -326,15 +336,15 @@ class WebsocketWorker
         uint8_t servoNum = atoi(command[2]);
         uint8_t degree = atoi(command[3]);
 
-        Serial.printf("Hand: %c, Number: %u, Degree: %u \n", hand, servoNum, degree);
+        Serial.printf("   Hand: %c, Number: %u, Degree: %u \n", hand, servoNum, degree);
         moveServo(hand, servoNum, degree);
       }
 
       if (commandEquals("/setup_finger")) {
         Serial.println("[command] Setup finger");
         
-        uint8_t finger_number = atoi(command[1]); // 0
-        fingers_settings[finger_number].hand = command[2][0]; // l
+        uint8_t finger_number = atoi(command[1]); 
+        fingers_settings[finger_number].hand = command[2][0];
 
         // simple finger
         if (command[3][0] == 's') {
@@ -421,16 +431,16 @@ class WebsocketWorker
 
         // готовим шаговик (возвращаем в ноль)
 
-        Serial.printf("Current stepper pos: %d \n", current_stepper_position);
+        // Serial.printf("   Current stepper pos: %d \n", current_stepper_position);
 
         digitalWrite(Stepper_ENA_PIN, LOW);
 
         if (current_stepper_position < 0) {
-          Serial.println("move forward");
+          // Serial.println("move forward");
           digitalWrite(Stepper_DIR_PIN, HIGH);
         }
         else {
-          Serial.println("move backward");
+          // Serial.println("move backward");
           digitalWrite(Stepper_DIR_PIN, LOW);
         }
         
@@ -443,18 +453,18 @@ class WebsocketWorker
         current_stepper_position = 0;
         digitalWrite(Stepper_ENA_PIN, HIGH);
 
-        Serial.printf("New current stepper pos: %d \n", current_stepper_position);
+        // Serial.printf("   New current stepper pos: %d \n", current_stepper_position);
 
-        Serial.println("Ready to play");
+        Serial.println("   Ready to play");
       }
 
       if (commandEquals("/take_note")) {
-        Serial.println("[command] Take note");
+        // Serial.println("[command] Take note");
         
         // аргумент - нота
         uint16_t note_number = resolveNote(command[1]);
 
-        Serial.printf("Note name: %s, note number: %u \n", String(command[1]), note_number);
+        Serial.printf("[command] Take Note, name: %s, note number: %u \n", String(command[1]), note_number);
 
         rotate_stepper(note_number);
         take_note(note_number);
@@ -462,74 +472,71 @@ class WebsocketWorker
 
       // играем ноту
       if (commandEquals("/play_note")) {
-        Serial.println("[command] Play note");
+        Serial.println("[command] Play Note");
 
         // аргументы - нота и её длительность
         uint16_t note_number = resolveNote(command[1]);
         uint16_t time = atoi(command[2]);
 
-        Serial.printf("Note name: %s, %u \n", String(command[1]), note_number);
-        Serial.printf("Note time: %u \n", time);
+        Serial.printf("   Note name: %s, %u \n", String(command[1]), note_number);
+        Serial.printf("   Note time: %u \n", time);
 
         // выставляем пальцы и шаговик в нужные позиции
         rotate_stepper(note_number);
         take_note(note_number);
 
-        Serial.println("Waiting for fingers to change positions");
-        vTaskDelay(100);
+        Serial.println("   Waiting for fingers to change positions");
+        // vTaskDelay(100);
 
         // на всякий случай включаем компрессор
         digitalWrite(COMPRESSOR_PIN, HIGH);
         // открываем клапан
-        Serial.println("Turning ON valve");
+        // Serial.println("   Turning ON valve");
         digitalWrite(VALVE_PIN, HIGH); 
         
         // играем ноту заданное время
-        Serial.println("Playing note");
+        Serial.println("   START playing note");
         vTaskDelay(time);
-        Serial.println("Stop playing note");
+        Serial.println("   STOP playing note");
 
         // закрываем клапан
-        Serial.println("Turning OFF valve");
+        Serial.println("   Turning OFF valve");
         digitalWrite(VALVE_PIN, LOW); 
       }
 
       // задержка
       if (commandEquals("/delay")) { 
-        Serial.println("[command] Delay");
-        uint16_t time = atoi(command[1]);
-        // Serial.printf("Delay time: %u \n", time);
 
-        // закрываем клапан
-        // Serial.println("Turning OFF valve");
-        // digitalWrite(VALVE_PIN, LOW); 
+        uint16_t time = atoi(command[1]);
+        Serial.printf("[command] Delay time: %u \n", time);
+
         vTaskDelay(time);
       }
 
       // переключение клапана
       if (commandEquals("/turn_valve")) {
-        Serial.println("[command] Turn Valve");
+        // Serial.println("[command] Turn Valve");
         bool turn_on = atoi(command[1]);
         if (turn_on) {
-          Serial.println("Turning ON valve");
+          Serial.println("[command] Turning ON valve");
           digitalWrite(VALVE_PIN, HIGH);
         }
         else {
-          Serial.println("Turning OFF valve");
+          Serial.println("[command] Turning OFF valve");
           digitalWrite(VALVE_PIN, LOW);
         }
       }
 
       // переключение компрессора
       if (commandEquals("/turn_compressor")) {
-        Serial.println("[command] Turn Compressor");
+        // Serial.println("[command] Turn Compressor");
         bool turn_on = atoi(command[1]);
         if (turn_on) {
-          Serial.println("Turning ON compressor");
+          Serial.println("[command] Turning ON compressor");
           digitalWrite(COMPRESSOR_PIN, HIGH);
         }
         else {
-          Serial.println("Turning OFF compressor");
+          Serial.println("[command] Turning OFF compressor");
           digitalWrite(COMPRESSOR_PIN, LOW);
         }
       }
@@ -544,11 +551,11 @@ class WebsocketWorker
         digitalWrite(Stepper_ENA_PIN, LOW);
 
         if (direction == 'f') {
-          Serial.println("move forward");
+          // Serial.println("move forward");
           digitalWrite(Stepper_DIR_PIN, HIGH);
         }
         else {
-          Serial.println("move backward");
+          // Serial.println("move backward");
           digitalWrite(Stepper_DIR_PIN, LOW);
         }
 
@@ -560,6 +567,47 @@ class WebsocketWorker
           // Serial.printf("%u \n", i);
         }
         digitalWrite(Stepper_ENA_PIN, HIGH);
+      }
+
+
+      // Тестирование работоспособности пальца, передаём его номер
+      if (commandEquals("/test_finger")) {
+        Serial.println("[command] Test Finger");
+        uint8_t number = atoi(command[1]); 
+
+        if (fingers_settings[number].type == 's') {
+          Serial.println("   Simple finger");
+          vTaskDelay(300);
+          fingers_settings[number].simple_open();
+          vTaskDelay(1000);
+          fingers_settings[number].simple_close();
+          vTaskDelay(300);
+        }
+        else if (fingers_settings[number].type == 'd') {
+          Serial.println("   Double finger");
+          vTaskDelay(300);
+          fingers_settings[number].double_open();
+          vTaskDelay(1000);
+          fingers_settings[number].double_close_one_hole();
+          vTaskDelay(1000);
+          fingers_settings[number].double_open();
+          vTaskDelay(1000);
+          fingers_settings[number].double_close_two_holes();
+          vTaskDelay(1000);
+          fingers_settings[number].double_open();
+          vTaskDelay(300);
+        }
+        else if (fingers_settings[number].type == 'b') {
+          Serial.println("   Big finger");
+          vTaskDelay(300);
+          fingers_settings[number].big_open();
+          vTaskDelay(delayBetweenFingerMoves);
+          fingers_settings[number].big_relax();
+          vTaskDelay(delayBetweenFingerMoves);
+          fingers_settings[number].big_full_close();
+          vTaskDelay(delayBetweenFingerMoves);
+          fingers_settings[number].big_relax();
+        }
       }
     }
 
