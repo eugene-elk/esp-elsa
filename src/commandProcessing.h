@@ -588,10 +588,12 @@ class WebsocketWorker
           vTaskDelay(300);
           fingers_settings[number].double_open();
           vTaskDelay(1000);
+          Serial.println("   Close one hole");
           fingers_settings[number].double_close_one_hole();
           vTaskDelay(1000);
           fingers_settings[number].double_open();
           vTaskDelay(1000);
+          Serial.println("   Close two holes");
           fingers_settings[number].double_close_two_holes();
           vTaskDelay(1000);
           fingers_settings[number].double_open();
