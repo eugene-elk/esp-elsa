@@ -18,10 +18,10 @@ const uint8_t Stepper_STEP_PIN = 22;
 const uint8_t Stepper_ENA_PIN = 23;
 
 // задержка шага, шаговик, миллисекунды
-const uint16_t stepperDelay = 2;
+const uint16_t stepperDelay = 1;
 
 // задержка между движениями пальца в сложных перестановках пальца
-const int16_t delayBetweenFingerMoves = 300;
+const int16_t delayBetweenFingerMoves = 200;
 
 class Finger 
 {
@@ -482,26 +482,38 @@ class WebsocketWorker
         Serial.printf("   Note time: %u \n", time);
 
         // выставляем пальцы и шаговик в нужные позиции
+        digitalWrite(VALVE_PIN, LOW); 
         rotate_stepper(note_number);
         take_note(note_number);
+        digitalWrite(VALVE_PIN, HIGH);
 
         Serial.println("   Waiting for fingers to change positions");
         // vTaskDelay(100);
-
-        // на всякий случай включаем компрессор
-        digitalWrite(COMPRESSOR_PIN, HIGH);
-        // открываем клапан
-        // Serial.println("   Turning ON valve");
-        digitalWrite(VALVE_PIN, HIGH); 
         
         // играем ноту заданное время
         Serial.println("   START playing note");
         vTaskDelay(time);
         Serial.println("   STOP playing note");
+      }
 
-        // закрываем клапан
-        Serial.println("   Turning OFF valve");
+
+      // Работает в связке с prepare_note
+      if (commandEquals("/play_note_simple")) {
+        Serial.println("[command] Play Note Simple");
+        Serial.println("   Open valve");
+        digitalWrite(VALVE_PIN, HIGH);
+      }
+
+      if (commandEquals("/prepare_note")) {
+        Serial.println("[command] Prepare Note");
+
+        uint16_t note_number = resolveNote(command[1]);
+        Serial.printf("   Note name: %s, %u \n", String(command[1]), note_number);
+
         digitalWrite(VALVE_PIN, LOW); 
+        Serial.println("   Fingers are changing positions");
+        rotate_stepper(note_number);
+        take_note(note_number);
       }
 
       // задержка
@@ -510,6 +522,7 @@ class WebsocketWorker
         uint16_t time = atoi(command[1]);
         Serial.printf("[command] Delay time: %u \n", time);
 
+        digitalWrite(VALVE_PIN, LOW); 
         vTaskDelay(time);
       }
 
@@ -614,9 +627,12 @@ class WebsocketWorker
     }
 
     void scheduler() {
+      // Serial.println("start scheduler");
       uint32_t timer = getTimer();
       if(timer == 0) return;
+      // Serial.println("timer return");
       for(int lineIndex = scheduleOffset; lineIndex < scheduleCursor; lineIndex++) {
+        // Serial.println("inside for");
         char timerString[16];
         int semicolonIndex;
         // Serial.println("processingLine");
@@ -640,6 +656,7 @@ class WebsocketWorker
           // Serial.println();
           // Serial.print("Processing: ");
           // Serial.println(buff);
+          
           processCommand(buff);
           scheduleOffset++;
         }

@@ -50,7 +50,7 @@ const char* ssid     = "CyberTheater";
 const char* password = "intelnuc";
 char path[] = "/ws/elsa";
 // char host[] = "192.168.88.10"; // комп димы
-char host[] = "192.168.88.14"; // асус лабный
+char host[] = "192.168.88.12"; // асус лабный
 const uint8_t port = 80;
 
 WebsocketWorker wsHandler;
@@ -74,7 +74,7 @@ void sendWithChecksum(ServoCommand command, char hand) {
 	SoftwareSerial *driver;
 	if(hand == 'r') driver = &driverR;
 	if(hand == 'l') driver = &driverL;
-	for (uint8_t i = 0; i < 4; i++) {
+	for (uint8_t i = 0; i < 8; i++) {
 		driver->write(startFrame);
   	  	driver->write(reinterpret_cast<char *>(& command), sizeof(command));
   	}
