@@ -122,9 +122,6 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
 void setup() {
 
-	// Линейный привод на подъём рук
-	// linear.init(25, 4, 2, 0);
-
 	// пальцы
 	driverR.begin(115200, SWSERIAL_8N1, 16, 17, false);
 	driverL.begin(115200, SWSERIAL_8N1, 4, 13, false); // проверить пины 
@@ -138,6 +135,9 @@ void setup() {
 	pinMode(Stepper_DIR_PIN, OUTPUT);
 	pinMode(Stepper_STEP_PIN, OUTPUT);
 	pinMode(Stepper_ENA_PIN, OUTPUT);
+	// подъем-опускание рук
+	pinMode(HANDS_1_PIN, OUTPUT);
+    pinMode(HANDS_2_PIN, OUTPUT);
 	  
     delay(100);
 

@@ -17,11 +17,15 @@ const uint8_t Stepper_DIR_PIN = 21;
 const uint8_t Stepper_STEP_PIN = 22;
 const uint8_t Stepper_ENA_PIN = 23;
 
+// куда подключен подъем рук
+const uint8_t HANDS_1_PIN = 26;
+const uint8_t HANDS_2_PIN = 27;
+
 // задержка шага, шаговик, миллисекунды
 const uint16_t stepperDelay = 1;
 
 // задержка между движениями пальца в сложных перестановках пальца
-const int16_t delayBetweenFingerMoves = 200;
+const int16_t delayBetweenFingerMoves = 75;
 
 class Finger 
 {
@@ -63,9 +67,13 @@ class Finger
     }
 
     void double_close_one_hole() {
-      moveServo(hand, servo2, one_hole_mid);
-      vTaskDelay(delayBetweenFingerMoves);
+      // moveServo(hand, servo2, one_hole_mid);
+      // vTaskDelay(delayBetweenFingerMoves);
       moveServo(hand, servo1, one_hole_end);
+    }
+
+    void double_close_one_hole_from_two() {
+      moveServo(hand, servo2, one_hole_mid);
     }
 
     void double_close_two_holes() {
@@ -248,11 +256,16 @@ class WebsocketWorker
             }
             else if (fingers_required_positions[i] == 1) {
               // перед закрытием палец обязательно нужно открыть (так как при переходе из одного закрытого состояния в другое он застрянет)
-              if (fingers_current_positions[i] == 2) {
-                fingers_settings[i].double_open();
-                vTaskDelay(delayBetweenFingerMoves);  
+              if (fingers_current_positions[i] == 0) {
+                fingers_settings[i].double_close_one_hole();
               }
-              fingers_settings[i].double_close_one_hole();
+
+              if (fingers_current_positions[i] == 2) {
+                fingers_settings[i].double_close_one_hole_from_two();
+                // fingers_settings[i].double_open();
+                // vTaskDelay(delayBetweenFingerMoves);  
+              }
+              
             }
             else if (fingers_required_positions[i] == 2) {
               // перед закрытием палец обязательно нужно открыть (так как при переходе из одного закрытого состояния в другое он застрянет)
@@ -405,6 +418,7 @@ class WebsocketWorker
 
         Serial.println("[command] Prepare");
         
+        bool relax = atoi(command[1]);
         // showCurrentFingersPositions();
 
         // готовим пальцы
@@ -422,8 +436,10 @@ class WebsocketWorker
             fingers_settings[i].big_relax();
             vTaskDelay(delayBetweenFingerMoves);
             fingers_settings[i].big_full_close();
-            vTaskDelay(delayBetweenFingerMoves);
-            fingers_settings[i].big_relax();
+            if (relax) {
+              vTaskDelay(delayBetweenFingerMoves);
+              fingers_settings[i].big_relax();
+            }
             fingers_current_positions[i] = 1;
           }
         }
@@ -526,6 +542,15 @@ class WebsocketWorker
         vTaskDelay(time);
       }
 
+      if (commandEquals("/delay_no_valve")) { 
+
+        uint16_t time = atoi(command[1]);
+        Serial.printf("[command] Delay time: %u \n", time);
+
+        // digitalWrite(VALVE_PIN, LOW); 
+        vTaskDelay(time);
+      }
+
       // переключение клапана
       if (commandEquals("/turn_valve")) {
         // Serial.println("[command] Turn Valve");
@@ -623,6 +648,25 @@ class WebsocketWorker
           vTaskDelay(delayBetweenFingerMoves);
           fingers_settings[number].big_relax();
         }
+      }
+
+      if (commandEquals("/hands_up")) {
+        Serial.println("[command] Hands Up");
+        digitalWrite(HANDS_1_PIN, HIGH);
+        digitalWrite(HANDS_2_PIN, LOW);
+      }
+
+      if (commandEquals("/hands_down")) {
+        Serial.println("[command] Hands Down");
+        digitalWrite(HANDS_1_PIN, LOW);
+        digitalWrite(HANDS_2_PIN, HIGH);
+      }
+
+      if (commandEquals("/move_head")) {
+        Serial.println("[command] Move Head");
+        uint16_t servo_position = atoi(command[1]);
+
+        moveServo('l', 6, servo_position);
       }
     }
 
