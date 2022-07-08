@@ -40,6 +40,7 @@ SoftwareSerial driverR;
 SoftwareSerial driverL;
 SoftwareSerial radio;
 
+
 uint32_t tmr;
 boolean flag;
 
@@ -126,6 +127,7 @@ void setup() {
 	driverR.begin(115200, SWSERIAL_8N1, 16, 17, false);
 	driverL.begin(115200, SWSERIAL_8N1, 4, 13, false); // проверить пины 
 
+	
 	// подача воздуха
 	pinMode(COMPRESSOR_PIN, OUTPUT);
     pinMode(VALVE_PIN, OUTPUT);

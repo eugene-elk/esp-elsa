@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <SoftwareSerial.h>
 #define commandEquals(x) !strcmp(command[0], x)
 
 const uint8_t vSize = 64;
@@ -142,6 +143,9 @@ class WebsocketWorker
     char temp;
     uint8_t index = 0;
   public:
+
+
+    SoftwareSerial wheels;
 
     // отдаёт номер ноты по её названию
     int8_t resolveNote (char* letter) {
@@ -667,6 +671,78 @@ class WebsocketWorker
         uint16_t servo_position = atoi(command[1]);
 
         moveServo('l', 6, servo_position);
+      }
+
+      if (commandEquals("/wheels_rotate_right")) {
+        Serial.println("[command] Wheels Rotate Right");
+
+        uint8_t time = atoi(command[1]); // 10 = 1s 
+        
+        // езда
+  	    wheels.begin(9600, SWSERIAL_8N1, 18, 19, false);
+	      char msg = 10;
+        wheels.write(msg);
+        wheels.write(time);
+      }
+
+      if (commandEquals("/wheels_rotate_left")) {
+        Serial.println("[command] Wheels Rotate Left");
+        
+        uint8_t time = atoi(command[1]); // 10 = 1s 
+
+        // езда
+  	    wheels.begin(9600, SWSERIAL_8N1, 18, 19, false);
+	      char msg = 11;
+        wheels.write(msg);
+        wheels.write(time);
+      }
+
+      if (commandEquals("/wheels_move_right")) {
+        Serial.println("[command] Wheels Move Right");
+
+        uint8_t time = atoi(command[1]); // 10 = 1s 
+        
+        // езда
+  	    wheels.begin(9600, SWSERIAL_8N1, 18, 19, false);
+	      char msg = 20;
+        wheels.write(msg);
+        wheels.write(time);
+      }
+
+      if (commandEquals("/wheels_move_left")) {
+        Serial.println("[command] Wheels Move Left");
+
+        uint8_t time = atoi(command[1]); // 10 = 1s 
+        
+        // езда
+  	    wheels.begin(9600, SWSERIAL_8N1, 18, 19, false);
+	      char msg = 21;
+        wheels.write(msg);
+        wheels.write(time);
+      }
+
+      if (commandEquals("/wheels_forward")) {
+        Serial.println("[command] Wheels Forward");
+
+        uint8_t time = atoi(command[1]); // 10 = 1s 
+        
+        // езда
+  	    wheels.begin(9600, SWSERIAL_8N1, 18, 19, false);
+	      char msg = 30;
+        wheels.write(msg);
+        wheels.write(time);
+      }
+
+      if (commandEquals("/wheels_backward")) {
+        Serial.println("[command] Wheels Backward");
+
+        uint8_t time = atoi(command[1]); // 10 = 1s 
+        
+        // езда
+  	    wheels.begin(9600, SWSERIAL_8N1, 18, 19, false);
+	      char msg = 31;
+        wheels.write(msg);
+        wheels.write(time);
       }
     }
 
