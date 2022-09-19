@@ -28,6 +28,12 @@ const uint16_t stepperDelay = 1;
 // задержка между движениями пальца в сложных перестановках пальца
 const int16_t delayBetweenFingerMoves = 75;
 
+// центральная позиция головы
+const int16_t headCenter = 80;
+
+// задержка при плавном повороте головы
+const uint16_t delayHeadSoftMove = 24; 
+
 class Finger 
 {
   public:
@@ -199,6 +205,8 @@ class WebsocketWorker
     uint8_t fingers_required_positions[fingersCount] = {1, 1, 1, 1, 1, 1, 0, 0};
     int16_t current_stepper_position = 0;
     int16_t required_stepper_position = 0;
+    int16_t current_servo_position = headCenter;
+    int16_t required_servo_position = headCenter;
 
     void rotate_stepper(uint8_t note_number) 
     {
@@ -424,6 +432,10 @@ class WebsocketWorker
         
         bool relax = atoi(command[1]);
         // showCurrentFingersPositions();
+
+        moveServo('l', 6, headCenter);
+        current_servo_position = headCenter;
+        required_servo_position = headCenter;
 
         // готовим пальцы
         for (int i = 0; i < fingersCount; i++) {
@@ -671,6 +683,19 @@ class WebsocketWorker
         uint16_t servo_position = atoi(command[1]);
 
         moveServo('l', 6, servo_position);
+        current_servo_position = servo_position;
+      }
+
+      if (commandEquals("/move_head_soft")) {
+        Serial.println("[command] Move Head Soft");
+
+        required_servo_position = atoi(command[1]);
+
+        for (int i = current_servo_position; i != required_servo_position; (current_servo_position > required_servo_position ? i-- : i++)) {
+          moveServo('l', 6, i);
+          vTaskDelay(delayHeadSoftMove);
+        }
+        current_servo_position = required_servo_position;
       }
 
       if (commandEquals("/wheels_rotate_right")) {
